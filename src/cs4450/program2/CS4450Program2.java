@@ -92,7 +92,7 @@ public static void start(String[] args){
         createWindow();
         Keyboard.create();
         initGL();
-        //render(toRender);
+        render(toDraw);
     }
     catch (Exception e){
         e.printStackTrace();
@@ -118,6 +118,20 @@ private static void initGL(){
     glMatrixMode(GL_MODELVIEW);
     glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 }    
+
+private static void render(ArrayList<ArrayList<String>> toDraw){
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    while (!Display.isCloseRequested() && !Keyboard.isKeyDown(Keyboard.KEY_ESCAPE)){
+        try{
+            Display.update();
+            Display.sync(60);
+            }
+        catch (Exception e){
+            e.printStackTrace();
+            }
+        }
+    Display.destroy();
+}
 
 public static void main(String[] args) {
     start(args);
