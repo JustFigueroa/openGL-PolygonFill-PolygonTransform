@@ -139,7 +139,7 @@ private static void render(ArrayList<ArrayList<String>> toDraw){
 private static void renderPolygon(ArrayList<ArrayList<String>> toDraw){
     ArrayList<String> polygonVertices = new ArrayList<String>();
     ArrayList<String> transformations = new ArrayList<String>();
-    ArrayList<String> updatedPolygonVertices = new ArrayList<String>();
+    ArrayList<Float> updatedPolygonVertices = new ArrayList<Float>();
 
     String taskToDo = "";
     
@@ -153,82 +153,167 @@ private static void renderPolygon(ArrayList<ArrayList<String>> toDraw){
         else if (taskToDo.equals("T")){
             transformations = toDraw.get(i);
             glPushMatrix();
-            transformPolygonVertices(polygonVertices, transformations);
-        glBegin(GL_LINE_LOOP);
-            for (int k = 4; k+1 < polygonVertices.size(); k+=2){
-                glVertex2f(Float.parseFloat(polygonVertices.get(k)), Float.parseFloat(polygonVertices.get(k+1)));
-                System.out.print(String.valueOf(polygonVertices.get(k)));
-                System.out.print(" ");
-                System.out.print(String.valueOf(polygonVertices.get(k + 1)));
-                System.out.print("\n");
+            updatedPolygonVertices = transformPolygonVertices(polygonVertices, transformations);
+        
+            glBegin(GL_LINE_LOOP);
+            for (int k = 0; k+1 < updatedPolygonVertices.size(); k+=2){
+                glVertex2f(updatedPolygonVertices.get(k), updatedPolygonVertices.get(k+1));
             }
+            
         glEnd();
         glPopMatrix();
+        
         }
     }
 }
-private static ArrayList<String> transformPolygonVertices(ArrayList<String> polygonVertices, ArrayList<String> transformations){
-        ArrayList<String> updatedPolygonVertices = new ArrayList<String>();
-        ArrayList<String> thisTransform = new ArrayList<String>();
-        ArrayList<String> thisVertice = new ArrayList<String>();
 
-        for (int i = transformations.size()-1; i > 0; i--){
+private static ArrayList<Float> transformPolygonVertices(ArrayList<String> polygonVertices, ArrayList<String> transformations){
+        ArrayList<Float> updatedPolygonVertices = new ArrayList<Float>();
+        ArrayList<String> thisTransform = new ArrayList<String>();
+        ArrayList<float[][]> matrixOperations = new ArrayList<float[][]>();
+        ArrayList<float[][]> thisOperations = new ArrayList<float[][]>();
+        float[][] compositeMatrix = new float[3][3];
+        float[] newVertices = new float[3];
+        float[] thisVertices = new float[3];
+
+
+        for (int i = 0; i < transformations.size(); i++){
             if (transformations.get(i).equals("t")){
             thisTransform.add(transformations.get(i+1));
             thisTransform.add(transformations.get(i+2));
-            //glTranslatef(Float.parseFloat(transformations.get(j+1)),Float.parseFloat(transformations.get(j+2)), 0f );
-            translateVertices(thisTransform, polygonVertices);
+            matrixOperations.addAll(translateVertices(thisTransform));
+            thisTransform.clear();
+
             }
             else if (transformations.get(i).equals("r")){
-                glRotatef(Float.parseFloat(transformations.get(i+1)),Float.parseFloat(transformations.get(i+2)), Float.parseFloat(transformations.get(i+3)), 1f);
-                System.out.print("Rotate");
-                System.out.print(transformations.get(i+1));
-                System.out.print(" ");
-                System.out.print(transformations.get(i+2));
-                System.out.print(" ");
-                System.out.print(transformations.get(i+3));
-                System.out.print("\n");
+            thisTransform.add(transformations.get(i+1));
+            thisTransform.add(transformations.get(i+2));
+            thisTransform.add(transformations.get(i+3));
+            matrixOperations.addAll(rotateVertices(thisTransform));
+            thisTransform.clear();
+
             }
             else if (transformations.get(i).equals("s")){
-                glTranslatef(Float.parseFloat(transformations.get(i+3)), Float.parseFloat(transformations.get(i+4)), 0f);
-                glScalef(Float.parseFloat(transformations.get(i+1)), Float.parseFloat(transformations.get(i+2)), 1f);
-                glTranslatef(-Float.parseFloat(transformations.get(i+3)), -Float.parseFloat(transformations.get(i+4)), 0f);
-                System.out.print("Scale ");
-                System.out.print(transformations.get(i+1));
-                System.out.print(" ");
-                System.out.print(transformations.get(i+2));
-                System.out.print(" ");
-                System.out.print(transformations.get(i+3));
-                System.out.print(" ");
-                System.out.print(transformations.get(i+4));
-                System.out.print("\n");
+            thisTransform.add(transformations.get(i+1));
+            thisTransform.add(transformations.get(i+2));            
+            thisTransform.add(transformations.get(i+3));
+            thisTransform.add(transformations.get(i+4));
+            matrixOperations.addAll(scaleVertices(thisTransform));
+            thisTransform.clear();
             }
             else 
                 System.out.print("Not a transformation");
+            
+        compositeMatrix = makeCompositeMatrix(matrixOperations);
         }
+        for (int i = 4; i < polygonVertices.size(); i+=2){
+           thisVertices = new float[] {Float.parseFloat(polygonVertices.get(i)), Float.parseFloat(polygonVertices.get(i+1)), 1};
+           newVertices = multiply(compositeMatrix, thisVertices);
+           updatedPolygonVertices.add(newVertices[0]);
+           updatedPolygonVertices.add(newVertices[1]);
+        }
+        
         return updatedPolygonVertices;
 }
-private static ArrayList<String> translateVertices(ArrayList<String> thisTransform, ArrayList<String> polygonVertices){
-    ArrayList<String> translatedVertice = new ArrayList<>();
-    
-    
-    return translatedVertice;
+
+private static ArrayList<float[][]> translateVertices(ArrayList<String> thisTransform){
+    ArrayList<float[][]> matrixOperations = new ArrayList<float[][]>();
+    float translateX = Float.parseFloat(thisTransform.get(0));
+    float translateY = Float.parseFloat(thisTransform.get(1));
+    float[][] translateMatrix = {{1, 0, translateX},{0, 1, translateY},{0, 0, 1}};
+    matrixOperations.add(translateMatrix);
+    return matrixOperations;
 }
 
-private static ArrayList<String> scaleVertice(ArrayList<String> thisTransform, ArrayList<String> polygonVertices){
-    ArrayList<String> translatedVertice = new ArrayList<>();
+private static ArrayList<float[][]> scaleVertices(ArrayList<String> thisTransform){
+    //SEE ROTATE COMMENTS
+    //glTranslatef(Float.parseFloat(thisTransform.get(2)), Float.parseFloat(thisTransform.get(3)), 0f);
+    //glScalef(Float.parseFloat(thisTransform.get(0)), Float.parseFloat(thisTransform.get(1)), 1f);
+    //glTranslatef(-Float.parseFloat(thisTransform.get(2)), -Float.parseFloat(thisTransform.get(3)), 0f);   
+    //
+    //newVertices = multiply(translateInverse, thisVertice);
+    //newVertices = multiply(scaleMatrix, newVertices);
+    //newVertices = multiply(translateMatrix, newVertices);
+    //return newVertices;
     
-    
-    return translatedVertice;
+    ArrayList<float[][]> matrixOperations = new ArrayList<float[][]>();
+    float scaleX = Float.parseFloat(thisTransform.get(0));
+    float scaleY = Float.parseFloat(thisTransform.get(1));
+    float translateX = Float.parseFloat(thisTransform.get(2));
+    float translateY= Float.parseFloat(thisTransform.get(3));
+    float[][] translateMatrix = {{1, 0, translateX},{0, 1, translateY},{0, 0, 1}};
+    float[][] translateInverse = {{1, 0, -translateX},{0, 1, -translateY},{0, 0, 1}};
+    float[][] scaleMatrix = {{scaleX, 0, 0},{0, scaleY, 0},{0, 0, 1}};
+    matrixOperations.add(translateInverse);
+    matrixOperations.add(scaleMatrix);
+    matrixOperations.add(translateMatrix);
+
+    return matrixOperations;
 }
 
-private static ArrayList<String> rotateVertices(ArrayList<String> thisTransform, ArrayList<String> polygonVertices){
-    ArrayList<String> translatedVertice = new ArrayList<>();
-    
-    
-    return translatedVertice;
+private static ArrayList<float[][]> rotateVertices(ArrayList<String> thisTransform){
+    //First Rendition: using gl transformation methods. Worked Successfully. Now to implement manual matrix trasnformations
+    //glRotatef(Float.parseFloat(thisTransform.get(0)),Float.parseFloat(thisTransform.get(1)), Float.parseFloat(thisTransform.get(2)), 1f);
+    //
+    //
+    //This was my second rendition: transform vertices one by one worked successfully. Now to make a transform composition matrix.
+    //Returned the vertices as a 1d matrix
+    //float[] newVertices = new float[3];
+    //newVertices = multiply(translateInverse, thisVertice);
+    //newVertices = multiply(rotateMatrix, newVertices);
+    //newVertices = multiply(translateMatrix, newVertices);
+    //
+    //return newVertices
+    ArrayList<float[][]> matrixOperations = new ArrayList<float[][]>();
+    float rotationAngleDegrees = Float.parseFloat(thisTransform.get(0));
+    float rotationAngle = (float) Math.toRadians(rotationAngleDegrees);
+    float pivPointX = Float.parseFloat(thisTransform.get(1));
+    float pivPointY = Float.parseFloat(thisTransform.get(2));
+    float[][] translateMatrix = {{1, 0, pivPointX},{0, 1, pivPointY},{0, 0, 1}};
+    float[][] translateInverse = {{1, 0, -pivPointX},{0, 1, -pivPointY},{0, 0, 1}};
+    float[][] rotateMatrix = {{(float)Math.cos(rotationAngle), -((float)Math.sin(rotationAngle)), 0},{(float) Math.sin(rotationAngle), (float)Math.cos(rotationAngle), 0},{0, 0, 1}};
+    matrixOperations.add(translateInverse);
+    matrixOperations.add(rotateMatrix);
+    matrixOperations.add(translateMatrix);
+    return matrixOperations;
 }
+
+private static float[][] makeCompositeMatrix(ArrayList<float[][]>matrixOperations){
+    float[][] compositeMatrix = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
+    for (int i = 0; i < matrixOperations.size(); i++){
+    compositeMatrix = multiply(matrixOperations.get(i), compositeMatrix);    
+    }
+    return compositeMatrix;
+
+}
+            
+private static float[][] multiply(float[][] transformMatrixA, float[][] transformMatrixB){
+    float[][] result = new float[3][3];
     
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            float sum = 0.0f;
+            for (int k = 0; k < 3; k++) {
+                sum += transformMatrixA[i][k] * transformMatrixB[k][j];
+            }
+            result[i][j] = sum;
+        }
+    }
+
+    return result;
+}
+
+private static float[] multiply(float[][] transformMatrix, float[] verticesMatrix){
+        float[] newVertices = new float[3];
+        for (int i = 0; i < transformMatrix.length; i++){
+        float sum = 0f;
+        for (int j = 0; j < transformMatrix[i].length; j++){
+            sum += transformMatrix[i][j] * verticesMatrix[j];
+        }
+        newVertices[i] = sum;
+    }
+  return newVertices;
+}
 private static void fillPolygon(){
     //to be implemented
 }
