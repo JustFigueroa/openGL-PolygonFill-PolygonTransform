@@ -4,7 +4,7 @@
 * class: CS 4450 – Computer Graphics
 *
 * assignment: program 2
-* date last modified: 09/25/2026
+* date last modified: 09/26/2026
 *
 * purpose: This program draws a window and draws primitives based on coordinates
 * from file passed by user via command line
@@ -169,55 +169,66 @@ private static void renderPolygon(ArrayList<ArrayList<String>> toDraw){
 }
 private static ArrayList<String> transformPolygonVertices(ArrayList<String> polygonVertices, ArrayList<String> transformations){
         ArrayList<String> updatedPolygonVertices = new ArrayList<String>();
+        ArrayList<String> thisTransform = new ArrayList<String>();
         ArrayList<String> thisVertice = new ArrayList<String>();
-        for (int j = transformations.size()-1; j > 0; j--){
-            if (transformations.get(j).equals("t")){
-                translateVertices();
-                glTranslatef(Float.parseFloat(transformations.get(j+1)),Float.parseFloat(transformations.get(j+2)), 0f );
-                System.out.print("translate ");
-                System.out.print(transformations.get(j+1));
-                System.out.print(" ");
-                System.out.print(transformations.get(j+2));
-                System.out.print("\n");
+
+        for (int i = transformations.size()-1; i > 0; i--){
+            if (transformations.get(i).equals("t")){
+            thisTransform.add(transformations.get(i+1));
+            thisTransform.add(transformations.get(i+2));
+            //glTranslatef(Float.parseFloat(transformations.get(j+1)),Float.parseFloat(transformations.get(j+2)), 0f );
+            translateVertices(thisTransform, polygonVertices);
             }
-            else if (transformations.get(j).equals("r")){
-                glRotatef(Float.parseFloat(transformations.get(j+1)),Float.parseFloat(transformations.get(j+2)), Float.parseFloat(transformations.get(j+3)), 1f);
+            else if (transformations.get(i).equals("r")){
+                glRotatef(Float.parseFloat(transformations.get(i+1)),Float.parseFloat(transformations.get(i+2)), Float.parseFloat(transformations.get(i+3)), 1f);
                 System.out.print("Rotate");
-                System.out.print(transformations.get(j+1));
+                System.out.print(transformations.get(i+1));
                 System.out.print(" ");
-                System.out.print(transformations.get(j+2));
+                System.out.print(transformations.get(i+2));
                 System.out.print(" ");
-                System.out.print(transformations.get(j+3));
+                System.out.print(transformations.get(i+3));
                 System.out.print("\n");
             }
-            else if (transformations.get(j).equals("s")){
-                glTranslatef(Float.parseFloat(transformations.get(j+3)), Float.parseFloat(transformations.get(j+4)), 0f);
-                glScalef(Float.parseFloat(transformations.get(j+1)), Float.parseFloat(transformations.get(j+2)), 1f);
-                glTranslatef(-Float.parseFloat(transformations.get(j+3)), -Float.parseFloat(transformations.get(j+4)), 0f);
+            else if (transformations.get(i).equals("s")){
+                glTranslatef(Float.parseFloat(transformations.get(i+3)), Float.parseFloat(transformations.get(i+4)), 0f);
+                glScalef(Float.parseFloat(transformations.get(i+1)), Float.parseFloat(transformations.get(i+2)), 1f);
+                glTranslatef(-Float.parseFloat(transformations.get(i+3)), -Float.parseFloat(transformations.get(i+4)), 0f);
                 System.out.print("Scale ");
-                System.out.print(transformations.get(j+1));
+                System.out.print(transformations.get(i+1));
                 System.out.print(" ");
-                System.out.print(transformations.get(j+2));
+                System.out.print(transformations.get(i+2));
                 System.out.print(" ");
-                System.out.print(transformations.get(j+3));
+                System.out.print(transformations.get(i+3));
                 System.out.print(" ");
-                System.out.print(transformations.get(j+4));
+                System.out.print(transformations.get(i+4));
                 System.out.print("\n");
             }
             else 
                 System.out.print("Not a transformation");
         }
+        return updatedPolygonVertices;
 }
-private static void rotateVertices(){
+private static ArrayList<String> translateVertices(ArrayList<String> thisTransform, ArrayList<String> polygonVertices){
+    ArrayList<String> translatedVertice = new ArrayList<>();
     
-}
-private static void scaleVertices(){
     
-}
-private static void translateVertices(){
-    
+    return translatedVertice;
 }
 
+private static ArrayList<String> scaleVertice(ArrayList<String> thisTransform, ArrayList<String> polygonVertices){
+    ArrayList<String> translatedVertice = new ArrayList<>();
+    
+    
+    return translatedVertice;
+}
+
+private static ArrayList<String> rotateVertices(ArrayList<String> thisTransform, ArrayList<String> polygonVertices){
+    ArrayList<String> translatedVertice = new ArrayList<>();
+    
+    
+    return translatedVertice;
+}
+    
 private static void fillPolygon(){
     //to be implemented
 }
