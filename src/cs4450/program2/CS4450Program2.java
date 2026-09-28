@@ -154,11 +154,8 @@ private static void renderPolygon(ArrayList<ArrayList<String>> toDraw){
             transformations = toDraw.get(i);
             glPushMatrix();
             updatedPolygonVertices = transformPolygonVertices(polygonVertices, transformations);
-        
-            glBegin(GL_LINE_LOOP);
-            for (int k = 0; k+1 < updatedPolygonVertices.size(); k+=2){
-                glVertex2f(updatedPolygonVertices.get(k), updatedPolygonVertices.get(k+1));
-            }
+            glBegin(GL_POINTS);
+            drawLines(updatedPolygonVertices);
             
         glEnd();
         glPopMatrix();
@@ -201,9 +198,8 @@ private static ArrayList<Float> transformPolygonVertices(ArrayList<String> polyg
             matrixOperations.addAll(scaleVertices(thisTransform));
             thisTransform.clear();
             }
-            else 
-                System.out.print("Not a transformation");
-            
+            else
+                continue;
         compositeMatrix = makeCompositeMatrix(matrixOperations);
         }
         for (int i = 4; i < polygonVertices.size(); i+=2){
@@ -314,9 +310,91 @@ private static float[] multiply(float[][] transformMatrix, float[] verticesMatri
     }
   return newVertices;
 }
-private static void fillPolygon(){
-    //to be implemented
+
+private static void drawLines(ArrayList<Float> updatedPolygonVertices){
+    ArrayList<ArrayList<Float>> allEdges = new ArrayList<ArrayList<Float>>();
+    ArrayList<ArrayList<Float>> globalEdges = new ArrayList<ArrayList<Float>>();
+    ArrayList<ArrayList<Float>> activeEdges = new ArrayList<ArrayList<Float>>();
+    allEdges = makeAllEdges(updatedPolygonVertices);
+    globalEdges = makeGlobalEdges(allEdges);
+    System.out.print("Success");
 }
+
+
+private static ArrayList<ArrayList<Float>> makeAllEdges(ArrayList<Float> updatedPolygonVertices){
+    ArrayList<ArrayList<Float>> allEdges = new ArrayList<ArrayList<Float>>();
+    float xInit;
+    float yInit;
+    float xFinal;
+    float yFinal;
+    int rowEdgeTable = 0;
+    allEdges.add(new ArrayList<Float>());
+
+    
+    for (int i = 0; i < updatedPolygonVertices.size(); i+=2){
+        if (i == updatedPolygonVertices.size() - 2){
+        xInit = updatedPolygonVertices.get(i);
+        yInit = updatedPolygonVertices.get(i+1);
+        xFinal = updatedPolygonVertices.get(0);
+        yFinal = updatedPolygonVertices.get(1);
+        }
+        else{
+        xInit = updatedPolygonVertices.get(i);
+        yInit = updatedPolygonVertices.get(i+1);
+        xFinal = updatedPolygonVertices.get(i+2);
+        yFinal = updatedPolygonVertices.get(i+3);
+        }
+        if (yInit > yFinal){
+            allEdges.get(rowEdgeTable).add(yFinal);
+            allEdges.get(rowEdgeTable).add(yInit);
+            allEdges.get(rowEdgeTable).add(xFinal);
+            allEdges.get(rowEdgeTable).add((xInit-xFinal)/(yInit-yFinal));
+        }
+        else if (yFinal > yInit){
+            allEdges.get(rowEdgeTable).add(yInit);
+            allEdges.get(rowEdgeTable).add(yFinal);
+            allEdges.get(rowEdgeTable).add(xInit);
+            allEdges.get(rowEdgeTable).add((xInit-xFinal)/(yInit-yFinal));
+        }
+        rowEdgeTable++;
+        allEdges.add(new ArrayList<Float>());
+        }
+
+    return allEdges;
+}
+
+private static ArrayList<ArrayList<Float>> makeGlobalEdges (ArrayList<ArrayList<Float>> allEdges){
+    ArrayList<ArrayList<Float>> globalEdges = new ArrayList<ArrayList<Float>>();
+
+    for (int i = 0; i < allEdges.size(); i++) {
+        globalEdges.add(allEdges.get(i));
+    }
+
+    for (int i = 0; i < globalEdges.size() - 1; i++){
+        for (int j = 0; j < globalEdges.size()-1-i; j++){
+            ArrayList<Float> edge1 = globalEdges.get(j);
+            ArrayList<Float> edge2 = globalEdges.get(j+1);
+            boolean swap = false;
+
+            if (edge1.get(0) > edge2.get(0)){
+                swap = true;
+            }
+            else if (edge1.get(0).equals(edge2.get(0)) && edge1.get(2) > edge2.get(2)){
+                swap = true;
+            }
+            else if (edge1.get(0).equals(edge2.get(0)) && edge1.get(2).equals(edge2.get(2)) && edge1.get(1) > edge2.get(1)){
+                swap = true;
+            }
+            if (swap) {
+                ArrayList<Float> temp = globalEdges.get(j);
+                globalEdges.set(j, globalEdges.get(j+1));
+                globalEdges.set(j+1, temp);
+            }
+        }
+    }
+    return globalEdges;
+}
+
 
 public static void main(String[] args) {
     start(args);
