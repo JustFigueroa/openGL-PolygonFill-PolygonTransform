@@ -77,7 +77,7 @@ public static ArrayList<ArrayList<String>> parseCoordinateFile(String pathToFile
             }
         }
     catch (Exception e){
-        System.out.println ("File not Found");
+        System.out.println ("Error Reading File, Please Ensure File is Formatted Correctly, and Path to File is Accurate!");
     }
         return toDraw;        
 }
@@ -173,7 +173,7 @@ private static ArrayList<Float> transformPolygonVertices(ArrayList<String> polyg
         float[] newVertices = new float[3];
         float[] thisVertices = new float[3];
 
-
+try{
         for (int i = 0; i < transformations.size(); i++){
             if (transformations.get(i).equals("t")){
             thisTransform.add(transformations.get(i+1));
@@ -210,6 +210,11 @@ private static ArrayList<Float> transformPolygonVertices(ArrayList<String> polyg
         }
         
         return updatedPolygonVertices;
+}
+catch (Exception e){
+    System.out.println ("Error Reading File, Please Ensure File is Formatted Correctly, and Path to File is Accurate!");
+}
+return updatedPolygonVertices;
 }
 
 private static ArrayList<float[][]> translateVertices(ArrayList<String> thisTransform){
@@ -317,7 +322,89 @@ private static void drawLines(ArrayList<Float> updatedPolygonVertices){
     ArrayList<ArrayList<Float>> activeEdges = new ArrayList<ArrayList<Float>>();
     allEdges = makeAllEdges(updatedPolygonVertices);
     globalEdges = makeGlobalEdges(allEdges);
-    System.out.print("Success");
+    try{
+    int scanLine = (int)Math.ceil(globalEdges.get(0).get(0));
+
+    glBegin(GL_POINTS);
+    
+    while (globalEdges.size() > 0 || activeEdges.size() > 0){
+        
+        while (globalEdges.size() > 0 && (int)Math.ceil(globalEdges.get(0).get(0)) == scanLine){
+
+            ArrayList<Float> edge = new ArrayList<Float>(globalEdges.get(0));
+
+            float minY = edge.get(0);
+            float xMin = edge.get(2);
+            float inverseSlope = edge.get(3);
+            //this is slightly modified due to ciel conversion because of floating point inaccuracy
+            float currentX = xMin + (scanLine - minY) * inverseSlope;
+
+            edge.set(2, currentX);
+
+            activeEdges.add(edge);
+
+            globalEdges.remove(0);
+        }
+        //remove from active edge if scanLine > maxy
+        for (int i = activeEdges.size() - 1; i >= 0; i--){
+            if (scanLine >= activeEdges.get(i).get(1)){
+                activeEdges.remove(i);
+            }
+
+        }
+        //same algo used to sort global edges
+        for (int i = 0; i < activeEdges.size()-1; i++){
+            for (int j = 0; j < activeEdges.size()-1-i; j++){
+                if (activeEdges.get(j).get(2) > activeEdges.get(j + 1).get(2)){
+                   
+                    ArrayList<Float> temp = activeEdges.get(j);
+                    activeEdges.set(j, activeEdges.get(j+1));
+                    activeEdges.set(j+1, temp);
+
+                }
+            }
+        }
+        
+        //fill
+        int parity = 0;
+
+        for (int i = 0; i < activeEdges.size(); i++){
+            if (parity == 0){
+                
+                float xStart = activeEdges.get(i).get(2);
+                if (i+1 < activeEdges.size()){
+
+                    float xEnd = activeEdges.get(i+1).get(2);
+                    int startPixel = (int)Math.ceil(xStart);
+
+                    int endPixel = (int)Math.floor(xEnd);
+
+                    for (int x = startPixel; x <= endPixel; x++){
+
+                        glVertex2f((float)x, (float)scanLine);
+                    }
+                }
+                parity = 1;
+            }
+            else{
+                parity = 0;
+            }
+
+        }
+
+        //update x1 = x0 + 1/m
+        for (int i = 0; i < activeEdges.size(); i++){
+            float currentX = activeEdges.get(i).get(2);
+            float inverseSlope = activeEdges.get(i).get(3);
+            activeEdges.get(i).set(2,currentX + inverseSlope);
+        }
+        scanLine++;
+    }
+    glEnd();
+    }
+    catch (Exception e){
+        System.out.println ("Error Reading File, Please Ensure File is Formatted Correctly, and Path to File is Accurate!");
+    }
 }
 
 
@@ -357,7 +444,9 @@ private static ArrayList<ArrayList<Float>> makeAllEdges(ArrayList<Float> updated
             allEdges.get(rowEdgeTable).add((xInit-xFinal)/(yInit-yFinal));
         }
         rowEdgeTable++;
-        allEdges.add(new ArrayList<Float>());
+        if (i < updatedPolygonVertices.size() - 2){
+        allEdges.add(new ArrayList<Float>());    
+        }
         }
 
     return allEdges;
@@ -367,6 +456,7 @@ private static ArrayList<ArrayList<Float>> makeGlobalEdges (ArrayList<ArrayList<
     ArrayList<ArrayList<Float>> globalEdges = new ArrayList<ArrayList<Float>>();
 
     for (int i = 0; i < allEdges.size(); i++) {
+        if (!allEdges.get(i).isEmpty())
         globalEdges.add(allEdges.get(i));
     }
 
