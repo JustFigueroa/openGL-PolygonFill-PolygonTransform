@@ -4,7 +4,7 @@
 * class: CS 4450 – Computer Graphics
 *
 * assignment: program 2
-* date last modified: 09/26/2026
+* date last modified: 09/29/2026
 *
 * purpose: This program draws a window and draws primitives based on coordinates
 * from file passed by user via command line
@@ -17,39 +17,35 @@ import org.lwjgl.opengl.Display;
 import org.lwjgl.opengl.DisplayMode;
 import static org.lwjgl.opengl.GL11.*;
 import org.lwjgl.input.Keyboard;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 
-
-public class CS4450Program2 {
-
+public class CS4450Program2 {   
     
-//These Functions will get the user input and parse the coordinates text
-public static String getPathToFile(String[] args){
-    String pathToFile;
-    try{
-        for (int i = 0; i < args.length; i++){
-        if (args[i].equals("--path") || args[i].equals("-p")){
-            pathToFile = args[i + 1];
-        return pathToFile;
-            }
-        else
-            return "Invalid arguements";
-        }
-    }
-    catch (Exception e){
-        return "Usage: ./program [--path or -p /path/to/file]";
-    }
-    return "Usage: ./program [--path or -p /path/to/file]";
+    
+//method:getFile
+//purpose: this method gets the file path from the data folder in src file of the program
+//  return path to be parsed
+public static String getFile() {
+    Path path = Paths.get("src", "data", "coordinates.txt");
+    return path.toString();
 }
+
+//method:parseCoordinateFile
+//purpose: this method parses the passed file and returns "toDraw" a 2d dynamically allocated array of the passed
+//  coordinates to be futher interpreted 
 public static ArrayList<ArrayList<String>> parseCoordinateFile(String pathToFile){
     ArrayList<ArrayList<String>> toDraw = new ArrayList<ArrayList<String>>();
     toDraw.add(new ArrayList<String>());
     int rowArrayList = 0;
-    int transformElements = 13;
     try (Scanner fileScanner = new Scanner(new File(pathToFile))) {
 
         while (fileScanner.hasNextLine()) {
-            String line = fileScanner.nextLine();
+            String line = fileScanner.nextLine().trim();
+            if (line.isEmpty()){
+                continue;
+            }
 
             try (Scanner lineScanner = new Scanner(line)) {
                     
@@ -72,23 +68,24 @@ public static ArrayList<ArrayList<String>> parseCoordinateFile(String pathToFile
                         while(lineScanner.hasNext())
                         toDraw.get(rowArrayList).add(lineScanner.next());
                     }
-                    
+                   
                 }
             }
         }
     catch (Exception e){
-        System.out.println ("Error Reading File, Please Ensure File is Formatted Correctly, and Path to File is Accurate!");
+        System.out.println ("Error Reading File, Please Ensure File is Formatted Correctly, and File is in Src/Data folder!");
     }
         return toDraw;        
 }
 
-public static void start(String[] args){
+//method:start
+//purpose: this is the first method called to begin the process of drawing + filling polygons
+//  from the coordinate text file
+public static void start(){
     try{
-        String pathToFile;
         ArrayList<ArrayList<String>> toDraw;
-        pathToFile = getPathToFile(args);
-        toDraw = parseCoordinateFile(pathToFile);
-  
+        String path = getFile();        
+        toDraw = parseCoordinateFile(path);
         createWindow();
         Keyboard.create();
         initGL();
@@ -99,10 +96,14 @@ public static void start(String[] args){
     }
 }
 
+//method: end
+//purpose: closes the application when called
 public static void end(){
     Display.destroy();
 }
 
+//method: createWindow
+//purpose: createst the display window
  private static void createWindow() throws Exception{
     Display.setFullscreen(false);
     Display.setDisplayMode(new DisplayMode(640, 480));
@@ -110,6 +111,8 @@ public static void end(){
     Display.create();
 }
 
+ //method: initGL
+ //purpose: initializes the window setting background color and initializes display orientation (coordinates)
 private static void initGL(){
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glMatrixMode(GL_PROJECTION);
@@ -119,8 +122,11 @@ private static void initGL(){
     glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 }    
 
+//method: render
+//purpose: render begins the process of drawing / filling polygons. 
+//  begins the while loop that continuously draws until the window is closed
+//  it accepts the parsed file from parseCoordinateFile method and passes it into the renderPolygon method
 private static void render(ArrayList<ArrayList<String>> toDraw){    
-
     while (!Display.isCloseRequested() && !Keyboard.isKeyDown(Keyboard.KEY_ESCAPE)){
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glLoadIdentity();
@@ -136,7 +142,14 @@ private static void render(ArrayList<ArrayList<String>> toDraw){
     Display.destroy();
 }
 
+//method: renderpPolygon
+//purpose: this function further parses the original passed data, accepting the 2d ArrayList and
+//  seperating based on the indidcators P and T for the polygona color and vertices and transformations respectively
+//  the parse seperates the data from P and T into ArrayLists polygonVertices and transformations to be interpreted further
+//  by functions transformPolygonaVertices. Then the updatedPolygonaVertices and placed into a ArrayLis
+//  to be drawn
 private static void renderPolygon(ArrayList<ArrayList<String>> toDraw){
+    
     ArrayList<String> polygonVertices = new ArrayList<String>();
     ArrayList<String> transformations = new ArrayList<String>();
     ArrayList<Float> updatedPolygonVertices = new ArrayList<Float>();
@@ -154,7 +167,6 @@ private static void renderPolygon(ArrayList<ArrayList<String>> toDraw){
             transformations = toDraw.get(i);
             glPushMatrix();
             updatedPolygonVertices = transformPolygonVertices(polygonVertices, transformations);
-            glBegin(GL_POINTS);
             drawLines(updatedPolygonVertices);
             
         glEnd();
@@ -164,6 +176,11 @@ private static void renderPolygon(ArrayList<ArrayList<String>> toDraw){
     }
 }
 
+//method: transformPolygonVertices
+//purpose: accepts the plygonVertices ArrayList and transformations ArrayList from renderPolygon method.
+//  Then genetates transform matrices which are then proccesed into a compsite matrix.
+//  The comosite matrix is used to perform the various transfromations on the provided polygonVertices 
+//  and retrusn updated vertices as an ArrayList of floats
 private static ArrayList<Float> transformPolygonVertices(ArrayList<String> polygonVertices, ArrayList<String> transformations){
         ArrayList<Float> updatedPolygonVertices = new ArrayList<Float>();
         ArrayList<String> thisTransform = new ArrayList<String>();
@@ -217,7 +234,11 @@ catch (Exception e){
 return updatedPolygonVertices;
 }
 
-private static ArrayList<float[][]> translateVertices(ArrayList<String> thisTransform){
+//method: trasnlatesVertices
+//purpose: accepts a specific transformation from the transformPolygonVertices method
+//  parses transformation specifics and generates and returns a 2d array trasnformation (trasnlation) matrix
+//  returned as an ArrayList of trasnformations because scale and rotate require tranlsation to pivot points
+ private static ArrayList<float[][]> translateVertices(ArrayList<String> thisTransform){
     ArrayList<float[][]> matrixOperations = new ArrayList<float[][]>();
     float translateX = Float.parseFloat(thisTransform.get(0));
     float translateY = Float.parseFloat(thisTransform.get(1));
@@ -226,6 +247,10 @@ private static ArrayList<float[][]> translateVertices(ArrayList<String> thisTran
     return matrixOperations;
 }
 
+//method: scaleVertices
+//purpose: accepts a specific transformation from the transformPolygonVertices method
+//  parses transformation specifics and generates and returns a 2d array trasnformation (scale) matrix 
+//  returned as an ArrayList of trasnformations because scale and rotate require tranlsation to pivot points
 private static ArrayList<float[][]> scaleVertices(ArrayList<String> thisTransform){
     //SEE ROTATE COMMENTS
     //glTranslatef(Float.parseFloat(thisTransform.get(2)), Float.parseFloat(thisTransform.get(3)), 0f);
@@ -252,6 +277,10 @@ private static ArrayList<float[][]> scaleVertices(ArrayList<String> thisTransfor
     return matrixOperations;
 }
 
+//method: rotateVertices
+//purpose: accepts a specific transformation from the transformPolygonVertices method
+//  parses transformation specifics and generates and returns a 2d array trasnformation (rotation) matrix 
+//  returned as an ArrayList of trasnformations because scale and rotate require tranlsation to pivot points
 private static ArrayList<float[][]> rotateVertices(ArrayList<String> thisTransform){
     //First Rendition: using gl transformation methods. Worked Successfully. Now to implement manual matrix trasnformations
     //glRotatef(Float.parseFloat(thisTransform.get(0)),Float.parseFloat(thisTransform.get(1)), Float.parseFloat(thisTransform.get(2)), 1f);
@@ -279,6 +308,10 @@ private static ArrayList<float[][]> rotateVertices(ArrayList<String> thisTransfo
     return matrixOperations;
 }
 
+//method: makeCompositeMatrix
+//purpose: this matrix accepts the ArrayList of 2d matrices, the various transform matrices created in the previous methods
+//  called from transformPolygonVertices method. Creates an identity matrix that is then passed with the various transformations into 
+//  a matrix multiplication algortihm method
 private static float[][] makeCompositeMatrix(ArrayList<float[][]>matrixOperations){
     float[][] compositeMatrix = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
     for (int i = 0; i < matrixOperations.size(); i++){
@@ -287,7 +320,9 @@ private static float[][] makeCompositeMatrix(ArrayList<float[][]>matrixOperation
     return compositeMatrix;
 
 }
-            
+
+//method: multiply (2d * 2d overload method)
+//purpose: multiplies 2d matrices returns a 2d matrix. Used to create composite matrix.
 private static float[][] multiply(float[][] transformMatrixA, float[][] transformMatrixB){
     float[][] result = new float[3][3];
     
@@ -304,6 +339,8 @@ private static float[][] multiply(float[][] transformMatrixA, float[][] transfor
     return result;
 }
 
+//method: multiply (1d * 2d method)
+//purpose: multiplies 1d matrix containing a specific pair of vertices by the composite matrix created by makeCompositeMatrix method
 private static float[] multiply(float[][] transformMatrix, float[] verticesMatrix){
         float[] newVertices = new float[3];
         for (int i = 0; i < transformMatrix.length; i++){
@@ -316,6 +353,10 @@ private static float[] multiply(float[][] transformMatrix, float[] verticesMatri
   return newVertices;
 }
 
+//method: drawLines
+//purpose: this method is doing the drawing and filling of the polygons. It uses a bubble sort algorithm to sort activeEdges and the 
+//algorithm discussed in class to plot the updated vertices (passed as ArrayList of floats created in the trasformPolygonaVertices method.
+//Used Edge tables and scan line.
 private static void drawLines(ArrayList<Float> updatedPolygonVertices){
     ArrayList<ArrayList<Float>> allEdges = new ArrayList<ArrayList<Float>>();
     ArrayList<ArrayList<Float>> globalEdges = new ArrayList<ArrayList<Float>>();
@@ -407,7 +448,9 @@ private static void drawLines(ArrayList<Float> updatedPolygonVertices){
     }
 }
 
-
+//method: makeAllEdges
+//purpose: this method creates the allEdges table. Uses algorithm discussed in class to  parse and sort the 
+//  edges. return the allEdge table in the form of a 2d ArrayList of type float
 private static ArrayList<ArrayList<Float>> makeAllEdges(ArrayList<Float> updatedPolygonVertices){
     ArrayList<ArrayList<Float>> allEdges = new ArrayList<ArrayList<Float>>();
     float xInit;
@@ -452,6 +495,9 @@ private static ArrayList<ArrayList<Float>> makeAllEdges(ArrayList<Float> updated
     return allEdges;
 }
 
+//method: makeGlobalEdges
+//purpose: accepts the allEdges table and sorts its based in class algorithm using a bubble sort algorithm. 
+//  returns a 2d ArrayList of type float as the globalEdge table
 private static ArrayList<ArrayList<Float>> makeGlobalEdges (ArrayList<ArrayList<Float>> allEdges){
     ArrayList<ArrayList<Float>> globalEdges = new ArrayList<ArrayList<Float>>();
 
@@ -485,9 +531,10 @@ private static ArrayList<ArrayList<Float>> makeGlobalEdges (ArrayList<ArrayList<
     return globalEdges;
 }
 
-
+//method: main
+//purpose: calls the start method which begin the entire program
 public static void main(String[] args) {
-    start(args);
+    start();
     }
 }
 
